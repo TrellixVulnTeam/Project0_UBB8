@@ -1,0 +1,24 @@
+
+### ASSMN
+CUDA_VISIBLE_DEVICES=0 python trainval.py \
+	--dataset 'ksc' \
+	--dr-num 4 --dr-method 'pca' \
+	--mi -1 --ma 1 \
+	--half-size 13 --rsz 27 \
+	--experiment-num 10 \
+	--lr 1e-2 --epochs 200 --batch-size 16 \
+	--scheme 2 --strategy 's2' \
+	--spec-time-steps 2 \
+	--group 'alternate' --seq 'cascade' \
+	--npi-num 2
+
+CUDA_VISIBLE_DEVICES=0 python infer.py \
+      --dataset 'ksc' \
+      --mi -1 --ma 1 \
+      --half-size 13 --rsz 27 \
+      --bz 50000 \
+      --scheme 2 --strategy 's2' 
+
+	 
+	
+	
