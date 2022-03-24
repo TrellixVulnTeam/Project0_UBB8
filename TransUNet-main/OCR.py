@@ -653,7 +653,7 @@ class HighResolutionNet(nn.Module):
         out_aux_seg = []
 
         # ocr
-        # feats = self.sub(feats)
+        # feats = self.sub(feats)Clones of the outer repository will not contain the contents of
         out_aux = self.aux_head(feats)
         # compute contrast feature
         feats = self.conv3x3_ocr(feats)

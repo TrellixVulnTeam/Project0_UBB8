@@ -177,6 +177,28 @@ class SpatialOCR_Module(nn.Module):
         return output
 
 
+class SpatialGather_Module(nn.Module):
+    """
+        Aggregate the context features according to the initial
+        predicted probability distribution.
+        Employ the soft-weighted method to aggregate the context.
+    """
+
+    def __init__(self, cls_num=0, scale=1):
+        super(SpatialGather_Module, self).__init__()
+        self.cls_num = cls_num
+        self.scale = scale
+
+    def forward(self, feats, probs):
+        batch_size, c, h, w = probs.size(0), probs.size(1), probs.size(2), probs.size(3)
+        probs = probs.view(batch_size, c, -1)
+        feats = feats.view(batch_size, feats.size(1), -1)
+        feats = feats.permute(0, 2, 1)  # batch x hw x c
+        probs = F.softmax(self.scale * probs, dim=2)  # batch x k x hw
+        ocr_context = torch.matmul(probs, feats).permute(0, 2, 1).unsqueeze(3)  # batch x k x c
+        return ocr_context
+
+
 class HighResolutionNet(nn.Module):
 
     def __init__(self, **kwargs):
@@ -185,6 +207,16 @@ class HighResolutionNet(nn.Module):
         super(HighResolutionNet, self).__init__()
         ALIGN_CORNERS =False
             # config.MODEL.ALIGN_CORNERS
+        num_classes = 6
+        self.gather_head = SpatialGather_Module(num_classes)
+        self.aux_head = nn.Sequential(
+            nn.Conv2d(256, 256,
+                      kernel_size=1, stride=1, padding=0),
+            BatchNorm2d(256),
+            nn.ReLU(inplace=relu_inplace),
+            nn.Conv2d(256, num_classes,
+                      kernel_size=1, stride=1, padding=0, bias=True)
+        )
         self.ocr_distri_head = SpatialOCR_Module(in_channels=256,
                                                  key_channels=256,
                                                  out_channels=256,
@@ -198,7 +230,7 @@ class HighResolutionNet(nn.Module):
         # last_inp_channel = 256
         ocr_mid_channels = 512  #512
         ocr_key_channels = 256   #256
-        num_classes = 6
+
         hidden_dim = 256
         self.level_embed = nn.Embedding(3, hidden_dim)
 
@@ -298,8 +330,10 @@ class HighResolutionNet(nn.Module):
 
         predictions_class = []
         predictions_mask = []
-        output = self.query_feat.weight.unsqueeze(1).repeat(1, bs, 1)
-
+        # output = self.query_feat.weight.unsqueeze(1).repeat(1, bs, 1)
+        auxout = self.aux_head(x0)
+        output = self.gather_head(x0,auxout)
+        output = output.reshape(6,4,256)
         outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[0])
         predictions_mask.append(outputs_mask)
         for i in range(3):

@@ -217,7 +217,7 @@ class VAN(nn.Module):
         # logger = get_root_logger()
         # load_checkpoint(self, r'E:\data\weight\van_tiny_754.pth.tar', map_location='cpu', strict=False, logger=logger)
         self.apply(self._init_weights)
-        self.ocr = OCR.HighResolutionNet()
+        self.ocr = OAR3.HighResolutionNet()
 
         # self.toplayer = nn.Conv2d(304, 256, kernel_size=1, stride=1, padding=0)
         # self.latlayer1 = nn.Conv2d(160, 256, kernel_size=1, stride=1, padding=0)
