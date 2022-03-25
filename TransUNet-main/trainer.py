@@ -682,17 +682,20 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     lossp = []
                     weightt = [0.1, 0.2, 0.3, 0.4, 1]
                     k = 1
+
                     for j in outputs[:-1]:
-                        los = dice_loss(j, label_batch)
-                        los2 = (focal_loss1(j, label_batch))  # +/2
-                        # if k == 4:
-                        auxloss = ((los+los2)/2)
-                                  # * (k*0.05)
-                        lossp.append(auxloss)
-                        # else:
-                        #     loss.append((los + los2)*(j+1)*0.1)
+                        # los = dice_loss(j, label_batch)
+                        # los2 = (focal_loss1(j, label_batch))  # +/2
+
+                        # auxloss = ((los+los2)/2)
+                        #           # * (k*0.05)
+                        # lossp.append(auxloss)
+                        los = focal_loss1(j,label_batch)
+                        lossp.append(los)
+
                         k += 1
-                    lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*focal_loss1(outputs[-1], label_batch)
+                    # lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*focal_loss1(outputs[-1], label_batch)
+                    lossmain = ce_loss(outputs[-1], label_batch)
                     lossp.append(lossmain)
                     loss = sum(lossp)
 

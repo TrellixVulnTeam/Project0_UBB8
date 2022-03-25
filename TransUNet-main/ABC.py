@@ -437,8 +437,8 @@ class ABCNet(nn.Module):
         self.fam = FeatureAggregationModule(256, 256)
         self.conv_out = Output(256, 256, n_classes, up_factor=8)
         if self.training:
-            self.conv_out16 = Output(128, 64, n_classes, up_factor=8)
-            self.conv_out32 = Output(128, 64, n_classes, up_factor=16)
+            self.conv_out16 = Output(256, 64, n_classes, up_factor=16)
+            self.conv_out32 = Output(512, 64, n_classes, up_factor=32)
         self.init_weight()
 
     def forward(self, x):
@@ -446,14 +446,18 @@ class ABCNet(nn.Module):
         feat_cp8, feat_cp16, feat_cp32 = self.cp(x)
         feat_sp = self.sp(x)
         feat_fuse = self.fam(feat_sp, feat_cp8)
-
+        OUT = []
         feat_out = self.conv_out(feat_fuse)
         if self.training:
             feat_out16 = self.conv_out16(feat_cp16)
             feat_out32 = self.conv_out32(feat_cp32)
-            return feat_out, feat_out16, feat_out32
+            OUT. append(feat_out16)
+            OUT.append(feat_out32)
+            OUT.append(feat_out)
+            return OUT
         # feat_out = feat_out.argmax(dim=1)
-        return feat_out
+        OUT.append(feat_out)
+        return OUT
 
     def init_weight(self):
         for ly in self.children():
