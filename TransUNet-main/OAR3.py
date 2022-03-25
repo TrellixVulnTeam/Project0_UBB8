@@ -330,10 +330,10 @@ class HighResolutionNet(nn.Module):
 
         predictions_class = []
         predictions_mask = []
-        # output = self.query_feat.weight.unsqueeze(1).repeat(1, bs, 1)
-        auxout = self.aux_head(x0)
-        output = self.gather_head(x0,auxout)
-        output = output.reshape(6,4,256)
+        output = self.query_feat.weight.unsqueeze(1).repeat(1, bs, 1)
+        # auxout = self.aux_head(x0)
+        # output = self.gather_head(x0,auxout)
+        # output = output.reshape(6,4,256)
         outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[0])
         predictions_mask.append(outputs_mask)
         for i in range(3):
@@ -354,9 +354,9 @@ class HighResolutionNet(nn.Module):
             )
 
             # FFN
-            output = self.transformer_ffn_layers[i](
-                output
-            )
+            # output = self.transformer_ffn_layers[i](
+            #     output
+            # )
             # output = self.decoder_norm[i](output)
             outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[(i + 1) % 3])
             # predictions_class.append(outputs_class)
