@@ -226,6 +226,10 @@ class HighResolutionNet(nn.Module):
         self.cls_head = nn.Sequential(nn.Conv2d(
             256, 6, kernel_size=1, stride=1, padding=0, bias=True),
             ModuleHelper.BNReLU(num_features=6))
+        self.head = nn.Sequential(nn.Conv2d(
+            1024, 256, kernel_size=1, stride=1, padding=0, bias=True),
+            ModuleHelper.BNReLU(num_features=256))
+
         last_inp_channels = 256
         # last_inp_channel = 256
         ocr_mid_channels = 512  #512
@@ -313,6 +317,19 @@ class HighResolutionNet(nn.Module):
         x2 = x[1]
         x3 = x[0]
         out_aux_seg = []
+        x0_h, x0_w = 128, 128
+        x11 = F.interpolate(x1, size=(x0_h, x0_w),
+                           mode='bilinear', align_corners=ALIGN_CORNERS)
+        x22 = F.interpolate(x2, size=(x0_h, x0_w),
+                           mode='bilinear', align_corners=ALIGN_CORNERS)
+        x33 = F.interpolate(x3, size=(x0_h, x0_w),
+                           mode='bilinear', align_corners=ALIGN_CORNERS)
+
+        x0 = torch.cat([x0, x11, x22, x33], 1)
+        x0 = self.head(x0)
+
+
+
         bs = x[0].shape[0]
         query_embed = self.query_embed.weight.unsqueeze(1).repeat(1, bs, 1)
 
