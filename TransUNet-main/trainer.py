@@ -620,14 +620,14 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
     # iterator = tqdm(range(epoch))
     # lr = args.base_lr
     model = model.cuda()
-    # model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\savemodel\ep130-loss1.175-acc0.339.pth'))
+    model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\savemodel\ep010-loss0.000-acc0.000.pth'))
 
-    a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
+    # a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
     # # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
-    model2_dict = model.state_dict()
-    state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
-    model2_dict.update(state_dict)
-    model.load_state_dict(model2_dict)
+    # model2_dict = model.state_dict()
+    # state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
+    # model2_dict.update(state_dict)
+    # model.load_state_dict(model2_dict)
 
     iter_num = 0
     db_train = TUDataset(train_image_paths, train_label_paths, mode='train')
@@ -683,19 +683,19 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     weightt = [0.1, 0.2, 0.3, 0.4, 1]
                     k = 1
 
-                    for j in outputs[:-1]:
-                        los = dice_loss(j, label_batch)
-                        los2 = (focal_loss1(j, label_batch))  # +/2
-                        # if k == 4:
-                        auxloss = ((los+los2)/2)
-                                  # * (k*0.05)
-                        lossp.append(auxloss)
-                        # else:
-                        #     loss.append((los + los2)*(j+1)*0.1)
-                        k += 1
-                    lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*focal_loss1(outputs[-1], label_batch)
-                    lossp.append(lossmain)
-                    loss = sum(lossp)
+                    # for j in outputs[:-1]:
+                    #     los = dice_loss(j, label_batch)
+                    #     los2 = (focal_loss1(j, label_batch))  # +/2
+                    #     # if k == 4:
+                    #     auxloss = ((los+los2)/2)
+                    #               # * (k*0.05)
+                    #     lossp.append(auxloss)
+                    #     # else:
+                    #     #     loss.append((los + los2)*(j+1)*0.1)
+                    #     k += 1
+                    # lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*focal_loss1(outputs[-1], label_batch)
+                    # lossp.append(lossmain)
+                    # loss = sum(lossp)
 
                     # lossv1.append(lossp[0])
                     # lossv2.append(lossp[1])
@@ -709,10 +709,12 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     # aux = outputs[0]
                     # outputs = outputs[1]
                     # lossaux = (focal_loss1(aux, label_batch) + dice_loss(aux, label_batch)) / 2
-                    # loss_dice = dice_loss(outputs, label_batch[:].long())
-                    # loss_ce = focal_loss1(outputs, label_batch)
-                    # loss = 0.5 * loss_ce + 0.5 * loss_dice
+
+                    loss_dice = dice_loss(outputs, label_batch[:].long())
+                    loss_ce = focal_loss1(outputs, label_batch)
+                    loss = 0.5 * loss_ce + 0.5 * loss_dice
                     # los = loss + lossaux
+
                     #
                     # bisenet loss
                     # outputs, *logits_aux = model(image_batch)
@@ -725,7 +727,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     # los = dice_loss(aux, label_batch, softmax=True) +loss_dice
                     # los = lovasz_softmax(aux, label_batch) + loss_ce
                     # los = ce_loss(aux, label_batch) + ce_loss(outputs, label_batch)
-                    outputs = outputs[-1]
+                    # outputs = outputs[-1]
                     with torch.no_grad():
                         tmiou, tacc, toa, tf1, _ = f_score(outputs, label_batch)
                     # base_lr = 0.006
@@ -787,7 +789,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     vlabel_batch = vlabel_batch.cuda()
                     with torch.no_grad():
                         outputss = model(vimage_batch)
-                        outputss = outputss[-1]
+                        # outputss = outputss[-1]
                         vloss_ce = ce_loss(outputss, vlabel_batch[:].long())
                         vloss_dice = dice_loss(outputss, vlabel_batch, softmax=True)
                         vloss = 0.5 * vloss_ce + 0.5 * vloss_dice

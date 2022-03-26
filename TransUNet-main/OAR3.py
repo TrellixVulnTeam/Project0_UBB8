@@ -208,15 +208,15 @@ class HighResolutionNet(nn.Module):
         ALIGN_CORNERS =False
             # config.MODEL.ALIGN_CORNERS
         num_classes = 6
-        self.gather_head = SpatialGather_Module(num_classes)
-        self.aux_head = nn.Sequential(
-            nn.Conv2d(256, 256,
-                      kernel_size=1, stride=1, padding=0),
-            BatchNorm2d(256),
-            nn.ReLU(inplace=relu_inplace),
-            nn.Conv2d(256, num_classes,
-                      kernel_size=1, stride=1, padding=0, bias=True)
-        )
+        # self.gather_head = SpatialGather_Module(num_classes)
+        # self.aux_head = nn.Sequential(
+        #     nn.Conv2d(256, 256,
+        #               kernel_size=1, stride=1, padding=0),
+        #     BatchNorm2d(256),
+        #     nn.ReLU(inplace=relu_inplace),
+        #     nn.Conv2d(256, num_classes,
+        #               kernel_size=1, stride=1, padding=0, bias=True)
+        # )
         self.ocr_distri_head = SpatialOCR_Module(in_channels=256,
                                                  key_channels=256,
                                                  out_channels=256,
@@ -242,14 +242,14 @@ class HighResolutionNet(nn.Module):
         self.query_embed = nn.Embedding(num_classes, hidden_dim)
         self.pe_layer = maskf4.PositionEmbeddingSine(128, normalize=True)
         self.decoder_norm = nn.LayerNorm(hidden_dim)
-        self.class_embed = nn.Linear(256, num_classes)
-        self.mask_embed = maskf4.MLP(256, 256, 6, 3)
+        # self.class_embed = nn.Linear(256, num_classes)
+        # self.mask_embed = maskf4.MLP(256, 256, 6, 3)
         self.num_heads = 8
         self.apply(self.init_weights)
 
         self.transformer_self_attention_layers = nn.ModuleList()
         self.transformer_cross_attention_layers = nn.ModuleList()
-        self.transformer_ffn_layers = nn.ModuleList()
+        # self.transformer_ffn_layers = nn.ModuleList()
 
 
         for _ in range(3):
@@ -271,14 +271,14 @@ class HighResolutionNet(nn.Module):
                 )
             )
 
-            self.transformer_ffn_layers.append(
-                maskf4.FFNLayer(
-                    d_model=hidden_dim,
-                    dim_feedforward=2048,
-                    dropout=0.0,
-                    normalize_before=False,
-                )
-            )
+            # self.transformer_ffn_layers.append(
+            #     maskf4.FFNLayer(
+            #         d_model=hidden_dim,
+            #         dim_feedforward=2048,
+            #         dropout=0.0,
+            #         normalize_before=False,
+            #     )
+            # )
 
     def _upsample(self, x, h, w):
         return F.interpolate(x, size=(h, w), mode='bilinear', align_corners=True)
@@ -292,6 +292,7 @@ class HighResolutionNet(nn.Module):
         # outputs_mask = torch.einsum("bqc,bchw->bqhw", mask_embed, mask_features)#bchw
 
         # outputs_mask = torch.einsum("bqf,bfhw->bqhw", decoder_output, mask_features)
+
         outputs_mask = self.ocr_distri_head(mask_features,decoder_output)
         outputs_mask = self.cls_head(outputs_mask)
 
@@ -351,8 +352,8 @@ class HighResolutionNet(nn.Module):
         # auxout = self.aux_head(x0)
         # output = self.gather_head(x0,auxout)
         # output = output.reshape(6,4,256)
-        outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[0])
-        predictions_mask.append(outputs_mask)
+        # outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[0])
+        # predictions_mask.append(outputs_mask)
         for i in range(3):
             level_index = (i % 3)
             # attn_mask[torch.where(attn_mask.sum(-1) == attn_mask.shape[-1])] = False
@@ -375,14 +376,16 @@ class HighResolutionNet(nn.Module):
             #     output
             # )
             # output = self.decoder_norm[i](output)
-            outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[(i + 1) % 3])
+            if i == 2:
+
+                outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[(i + 1) % 3])
             # predictions_class.append(outputs_class)
-            predictions_mask.append(outputs_mask)
+                predictions_mask.append(outputs_mask)
 
         # assert len(predictions_class) == 10 + 1
 
 
-        return predictions_mask
+        return outputs_mask
 
 
     def init_weights(self, pretrained='', ):

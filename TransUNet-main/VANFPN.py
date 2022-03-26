@@ -182,9 +182,16 @@ class FPN(nn.Module):
     def __init__(self, num_classes=6):
         super(FPN, self).__init__()
         # self.toplayer = nn.Conv2d(304, 256, kernel_size=1, stride=1, padding=0)
+
         self.latlayer1 = nn.Conv2d(160, 256, kernel_size=1, stride=1, padding=0)
         self.latlayer2 = nn.Conv2d(64, 256, kernel_size=1, stride=1, padding=0)
         self.latlayer3 = nn.Conv2d(32, 256, kernel_size=1, stride=1, padding=0)
+
+        # self.toplayer = nn.Conv2d(512, 256, kernel_size=1, stride=1, padding=0)
+        # self.latlayer1 = nn.Conv2d(320, 256, kernel_size=1, stride=1, padding=0)
+        # self.latlayer2 = nn.Conv2d(128, 256, kernel_size=1, stride=1, padding=0)
+        # self.latlayer3 = nn.Conv2d(64, 256, kernel_size=1, stride=1, padding=0)
+
         # self.smooth1 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
         # self.smooth2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
         # self.smooth3 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
@@ -210,7 +217,7 @@ class FPN(nn.Module):
         x16 = x[2]
         x8 = x[1]
         x4 = x[0]
-        # p5 = self.toplayer(x32)
+        # p5 = self.toplayer(p5)
         out = []
         p4 = self._upsample_add(p5, self.latlayer1(x16))
         p3 = self._upsample_add(p4, self.latlayer2(x8))
@@ -279,12 +286,20 @@ class VAN(nn.Module):
         # logger = get_root_logger()
         # load_checkpoint(self, r'E:\data\weight\van_tiny_754.pth.tar', map_location='cpu', strict=False, logger=logger)
         self.apply(self._init_weights)
-        self.ocr = OCR.HighResolutionNet()
+        # self.ocr = OCR.HighResolutionNet()
 
-        self.toplayer = nn.Conv2d(304, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer1 = nn.Conv2d(160, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer2 = nn.Conv2d(64, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer3 = nn.Conv2d(32, 256, kernel_size=1, stride=1, padding=0)
+        # self.toplayer = nn.Conv2d(304, 256, kernel_size=1, stride=1, padding=0)
+        # self.latlayer1 = nn.Conv2d(160, 256, kernel_size=1, stride=1, padding=0)
+        # self.latlayer2 = nn.Conv2d(64, 256, kernel_size=1, stride=1, padding=0)
+        # self.latlayer3 = nn.Conv2d(32, 256, kernel_size=1, stride=1, padding=0)
+        #tiny
+
+        self.toplayer = nn.Conv2d(512, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer1 = nn.Conv2d(320, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer2 = nn.Conv2d(128, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer3 = nn.Conv2d(64, 256, kernel_size=1, stride=1, padding=0)
+        #small
+
         self.smooth1 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
         self.smooth2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
         self.smooth3 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
@@ -296,20 +311,20 @@ class VAN(nn.Module):
         self.gn1 = nn.GroupNorm(128, 128)
         self.gn2 = nn.GroupNorm(256, 256)
         num_queries = 6
-        self.pe_layer = PositionEmbeddingSine(128, normalize=True)
-        self.query_embed = nn.Embedding(num_queries, 256)
-        transformer = Transformer(
-            d_model=256,
-            dropout=0.1,
-            nhead=8,
-            dim_feedforward=2048,
-            num_encoder_layers=0,  # 0
-            num_decoder_layers=6,
-            normalize_before=False,
-            return_intermediate_dec=True,
-        )
-        self.transformer = transformer
-        self.mask_embed = MLP(256, 256, 18, 3)
+        # self.pe_layer = PositionEmbeddingSine(128, normalize=True)
+        # self.query_embed = nn.Embedding(num_queries, 256)
+        # transformer = Transformer(
+        #     d_model=256,
+        #     dropout=0.1,
+        #     nhead=8,
+        #     dim_feedforward=2048,
+        #     num_encoder_layers=0,  # 0
+        #     num_decoder_layers=6,
+        #     normalize_before=False,
+        #     return_intermediate_dec=True,
+        # )
+        # self.transformer = transformer
+        # self.mask_embed = MLP(256, 256, 18, 3)
 
     def _upsample(self, x, h, w):
         return F.interpolate(x, size=(h, w), mode='bilinear', align_corners=True)
@@ -363,10 +378,10 @@ class VAN(nn.Module):
         x16 = outs[2]
         x8 = outs[1]
         x4 = outs[0]
-        # p5 = self.toplayer(p5)
-        pos = self.pe_layer(p5)
-        hs = self.transformer(p5, None, self.query_embed.weight, pos)
-        emb = self.mask_embed(hs)
+        p5 = self.toplayer(p5)
+        # pos = self.pe_layer(p5)
+        # hs = self.transformer(p5, None, self.query_embed.weight, pos)
+        # emb = self.mask_embed(hs)
         p4 = self._upsample_add(p5, self.latlayer1(x16))
         p3 = self._upsample_add(p4, self.latlayer2(x8))
         p2 = self._upsample_add(p3, self.latlayer3(x4))
