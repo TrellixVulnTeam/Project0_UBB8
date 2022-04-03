@@ -5,6 +5,8 @@ import random
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
+
+import ABC
 from networks.vit_seg_modeling import VisionTransformer as ViT_seg
 from networks.vit_seg_modeling import CONFIGS as CONFIGS_ViT_seg
 from trainer import trainn
@@ -22,7 +24,7 @@ from nets import pooltran_deeplab
 import math
 import model_v3
 import biesenetv2
-import efficientnetv2, VANFPN, OCR, VANOCR, HROCR
+import efficientnetv2, VANFPN, OCR, VANOCR, HROCR, VAN, res18_oar
 from maskf1 import efficientnetv2_s
 
 
@@ -87,15 +89,22 @@ if __name__ == "__main__":
     config_deep.transformer.attention_dropout_rate = 0.0
     config_deep.transformer.dropout_rate = 0.1
 
-    # net = trans_deeplab.DeepLab(num_classes=6, backbone="mobilenet", config=config_deep, downsample_factor=16, pretrained=False).cuda()
-    # net = deeplabv3_plus.DeepLab(num_classes=6, backbone="xception", pretrained=True, downsample_factor=16).cuda()
+    # net = trans_deeplab.DeepLab(num_classes=6, backbone="xception", config=config_deep, downsample_factor=16, pretrained=True).cuda()
+    # net = deeplabv3_plus.DeepLab(num_classes=6, backbone="xception", pretrained=False, downsample_factor=16).cuda()
     # net = pooltran_deeplab.poolformer_s12(pretrained=False)
     # net = model_v3.mobilenet_v3_small().cuda()
     # net = biesenetv2.BiSeNetV2(n_classes=6).cuda()
     # net = efficientnetv2.efficientnetv2_s().cuda()
 
     # net = VAN.van_tiny().cuda()
-    net = VANOCR.van_tiny().cuda()
+
+    # net = VANOCR.van_tiny().cuda()
+
+    # net = VANOCR.van_small().cuda()
+
+    net = res18_oar.Resnet18().cuda()
+    # net = ABC.ABCNet(n_classes=6).cuda()
+
     # net = OCR.HighResolutionNet().cuda()
     # net = HROCR.HighResolutionNet().cuda()
     # summary(net, (3, 512, 512))
@@ -116,7 +125,7 @@ if __name__ == "__main__":
     # lr = args.base_lr
 
     # optimizer = optim.SGD(net.parameters(), lr=2e-2, weight_decay=0.0001)
-    # optimizer = optim.Adam(net.parameters(), lr, weight_decay=5e-4)
+    # optimizer = optim.Adam(net.parameters(), lr = 2e-4, weight_decay=5e-4)
     optimizer = torch.optim.AdamW(net.parameters(),
                                   lr=lr,
                                   betas=(0.9, 0.999),

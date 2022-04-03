@@ -84,7 +84,7 @@ class Resnet18(nn.Module):
         feat8 = self.layer2(x) # 1/8
         feat16 = self.layer3(feat8) # 1/16
         feat32 = self.layer4(feat16) # 1/32
-        return feat8, feat16, feat32
+        return x, feat8, feat16, feat32
 
     def init_weight(self):
         state_dict = modelzoo.load_url(resnet18_url)
