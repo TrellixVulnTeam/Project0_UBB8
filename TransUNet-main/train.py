@@ -124,7 +124,7 @@ if __name__ == "__main__":
                                   weight_decay=0.0001,
                                   )
     # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.92)
-    from keras.optimizer_v2 import learning_rate_schedule as klropt
+
 
     # lr_scheduler =klropt.PolynomialDecay(initial_learning_rate=lr, power=0.9,)
     def split_train_val(image_paths, label_paths, val_index=0):
