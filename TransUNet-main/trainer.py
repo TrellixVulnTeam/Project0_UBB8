@@ -620,14 +620,14 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
     # iterator = tqdm(range(epoch))
     # lr = args.base_lr
     model = model.cuda()
-    model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\savemodel\ep010-loss0.000-acc0.000.pth'))
+    # model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\savemodel\ep010-loss0.000-acc0.000.pth'))
 
-    # a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
-    # # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
-    # model2_dict = model.state_dict()
-    # state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
-    # model2_dict.update(state_dict)
-    # model.load_state_dict(model2_dict)
+    a = torch.load(r'D:\weight\van_tiny_754.pth.tar')['state_dict']
+    # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
+    model2_dict = model.state_dict()
+    state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
+    model2_dict.update(state_dict)
+    model.load_state_dict(model2_dict)
 
     iter_num = 0
     db_train = TUDataset(train_image_paths, train_label_paths, mode='train')

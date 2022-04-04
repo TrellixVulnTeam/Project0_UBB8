@@ -6,7 +6,7 @@ from functools import partial
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from timm.models.registry import register_model
 from timm.models.vision_transformer import _cfg
-from mmseg.models.builder import BACKBONES
+
 from mmseg.utils import get_root_logger
 from mmcv.runner import load_checkpoint
 from maskf1 import PositionEmbeddingSine, MLP, Transformer
@@ -431,7 +431,7 @@ def _conv_filter(state_dict, patch_size=16):
     return out_dict
 
 
-@BACKBONES.register_module()
+
 class van_tiny(VAN):
     def __init__(self, **kwargs):
         super(van_tiny, self).__init__(
@@ -440,7 +440,7 @@ class van_tiny(VAN):
             drop_rate=0.0, drop_path_rate=0.1)
 
 
-@BACKBONES.register_module()
+
 class van_small(VAN):
     def __init__(self, **kwargs):
         super(van_small, self).__init__(
@@ -450,7 +450,6 @@ class van_small(VAN):
             drop_rate=0.0, drop_path_rate=0.1)
 
 
-@BACKBONES.register_module()
 class van_base(VAN):
     def __init__(self, **kwargs):
         super(van_base, self).__init__(
@@ -460,7 +459,6 @@ class van_base(VAN):
             drop_rate=0.0, drop_path_rate=0.1)
 
 
-@BACKBONES.register_module()
 class van_large(VAN):
     def __init__(self, **kwargs):
         super(van_large, self).__init__(

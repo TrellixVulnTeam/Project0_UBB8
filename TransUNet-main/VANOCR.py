@@ -4,11 +4,11 @@ import torch.nn.functional as F
 from functools import partial
 
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
-from timm.models.registry import register_model
-from timm.models.vision_transformer import _cfg
-from mmseg.models.builder import BACKBONES
-from mmseg.utils import get_root_logger
-from mmcv.runner import load_checkpoint
+# from timm.models.registry import register_model
+# from timm.models.vision_transformer import _cfg
+# from mmseg.models.builder import BACKBONES
+# from mmseg.utils import get_root_logger
+# from mmcv.runner import load_checkpoint
 
 import VANFPN
 from maskf1 import PositionEmbeddingSine, MLP, Transformer

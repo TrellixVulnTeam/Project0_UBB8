@@ -98,11 +98,11 @@ if __name__ == "__main__":
 
     # net = VAN.van_tiny().cuda()
 
-    # net = VANOCR.van_tiny().cuda()
+    net = VANOCR.van_tiny().cuda()
 
     # net = VANOCR.van_small().cuda()
 
-    net = res18_oar.Resnet18().cuda()
+    # net = res18_oar.Resnet18().cuda()
     # net = ABC.ABCNet(n_classes=6).cuda()
 
     # net = OCR.HighResolutionNet().cuda()
