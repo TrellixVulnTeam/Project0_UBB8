@@ -1,7 +1,7 @@
 from torch.nn import Module, Conv2d, Parameter
 
-import VANFPN
-r
+import VANFPN,FPN
+
 
 import OAR2,OAR3
 import torch
@@ -73,7 +73,7 @@ class Resnet18(nn.Module):
         self.layer4 = create_layer_basic(256, 512, bnum=2, stride=2)
         self.init_weight()
         self.ocr = OAR3.HighResolutionNet()
-        self.fpn = VANFPN.FPN()
+        self.fpn = VANFPN.FPN(512,256,128,64)
 
     def forward(self, x):
         outs = []
