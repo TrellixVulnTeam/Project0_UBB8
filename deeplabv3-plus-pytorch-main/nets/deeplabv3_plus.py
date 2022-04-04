@@ -174,7 +174,7 @@ class DeepLab(nn.Module):
         #   low_level_features: 浅层特征-进行卷积处理
         #   x : 主干部分-利用ASPP结构进行加强特征提取
         #-----------------------------------------#
-        low_level_features, x = self.backbone(x)
+        x ,low_level_features = self.backbone(x)
         x = self.aspp(x)
         low_level_features = self.shortcut_conv(low_level_features)
         

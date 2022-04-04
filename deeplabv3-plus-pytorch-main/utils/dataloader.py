@@ -7,7 +7,7 @@ from osgeo import gdal
 import random
 from torchvision import transforms as T
 from torch.utils.data.dataset import Dataset
-from utils.utils import preprocess_input, cvtColor
+# from utils.utils import preprocess_input, cvtColor
 
 
 def imgread(fileName, addNDVI=False):

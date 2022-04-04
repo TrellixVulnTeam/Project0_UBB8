@@ -179,26 +179,30 @@ class OverlapPatchEmbed(nn.Module):
 
 
 class FPN(nn.Module):
-    def __init__(self, num_classes=6):
+    def __init__(self, d32,d16,d8,d4):
         super(FPN, self).__init__()
         # self.toplayer = nn.Conv2d(304, 256, kernel_size=1, stride=1, padding=0)
 
-        self.latlayer1 = nn.Conv2d(160, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer2 = nn.Conv2d(64, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer3 = nn.Conv2d(32, 256, kernel_size=1, stride=1, padding=0)
+        # self.latlayer1 = nn.Conv2d(160, 256, kernel_size=1, stride=1, padding=0)
+        # self.latlayer2 = nn.Conv2d(64, 256, kernel_size=1, stride=1, padding=0)
+        # self.latlayer3 = nn.Conv2d(32, 256, kernel_size=1, stride=1, padding=0)
 
         # self.toplayer = nn.Conv2d(512, 256, kernel_size=1, stride=1, padding=0)
         # self.latlayer1 = nn.Conv2d(320, 256, kernel_size=1, stride=1, padding=0)
         # self.latlayer2 = nn.Conv2d(128, 256, kernel_size=1, stride=1, padding=0)
         # self.latlayer3 = nn.Conv2d(64, 256, kernel_size=1, stride=1, padding=0)
 
+        self.toplayer = nn.Conv2d(d32, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer1 = nn.Conv2d(d16, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer2 = nn.Conv2d(d8, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer3 = nn.Conv2d(d4, 256, kernel_size=1, stride=1, padding=0)
         # self.smooth1 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
         # self.smooth2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
         # self.smooth3 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
 
         # self.semantic_branch = nn.Conv2d(256, 128, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(128, 20, kernel_size=1, stride=1, padding=0)
+        # self.conv3 = nn.Conv2d(128, 20, kernel_size=1, stride=1, padding=0)
 
         # self.gn1 = nn.GroupNorm(128, 128)
         self.gn2 = nn.GroupNorm(256, 256)
@@ -217,7 +221,7 @@ class FPN(nn.Module):
         x16 = x[2]
         x8 = x[1]
         x4 = x[0]
-        # p5 = self.toplayer(p5)
+        p5 = self.toplayer(p5)
         out = []
         p4 = self._upsample_add(p5, self.latlayer1(x16))
         p3 = self._upsample_add(p4, self.latlayer2(x8))

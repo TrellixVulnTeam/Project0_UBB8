@@ -149,18 +149,19 @@ def DataAugmentation(image, label, mode):
         # radcrop = RandomCrop()
         stretch = random.choice([True, False])
         if (stretch):
-            image = truncated_linear_stretch(image, 0.5)
+            sst = random.choice([0.5, 1, 2])
+            image = truncated_linear_stretch(image, sst)
         image = randomColor(image)
         # image = RandomCrop(image, label)
 
         # ColorAug = random.choice([True, False])
         # if(ColorAug):
 
-    # if (mode == "val"):
-    #     stretch = random.choice([0.8, 1, 2])
-    #     # if(stretch == 'yes'):
-    #     # 0.5%线性拉伸
-    #     image = truncated_linear_stretch(image, stretch)
+    if (mode == "val"):
+        stretch = random.choice([0.8, 1, 2])
+        # if(stretch == 'yes'):
+        # 0.5%线性拉伸
+        image = truncated_linear_stretch(image, stretch)
     return image, label
 
 
@@ -388,7 +389,7 @@ def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
     # pc = float(torch.sum(tp)) / (float(torch.sum(tp + fp)) + 1e-5)
     # se =(float(tp) / (float(tp + fn) + 1e-5))
     # F1 = 2 * se * pc / (se + pc + 1e-5)
-    F1 = (2*tp/(2*tp+fp+fn+smooth)).mean()
+    F1 = (2*tp/(2*tp+fp+fn+smooth))[:-1].mean()
     # oa = torch.mean((tp + tn) / (tp + fn + fp + tn))
     # oa2 = (tpp + tnn) / (tpp + fnn + fpp + tnn)
     # oa2 = torch.mean(oa2)
@@ -513,7 +514,7 @@ class TUDataset(Dataset):  #  import torch.utils.data as D   (D.DataSet)
             # label = imgread(self.label_paths[index])-1
             # # 常规来讲,验证集不需要数据增强,但是这次数据测试集和训练集不同域,为了模拟不同域,验证集也进行数据增强
             # image, label = DataAugmentation(image, label, self.mode)
-            image = truncated_linear_stretch(image, 0.5)
+            # image = truncated_linear_stretch(image, 0.5)
             image_array = np.ascontiguousarray(image)
             return self.as_tensor(image_array), label.astype(np.int64)
         elif self.mode == "test":
@@ -620,14 +621,15 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
     # iterator = tqdm(range(epoch))
     # lr = args.base_lr
     model = model.cuda()
-    model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\savemodel\ep010-loss0.000-acc0.000.pth'))
+    # model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\model\ep620-loss0.061-acc0.889.pth'))
 
+    # a = torch.load(r'F:\lab\model\xception_pytorch_imagenet.pth')
     # a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
-    # # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
-    # model2_dict = model.state_dict()
-    # state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
-    # model2_dict.update(state_dict)
-    # model.load_state_dict(model2_dict)
+    a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
+    model2_dict = model.state_dict()
+    state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
+    model2_dict.update(state_dict)
+    model.load_state_dict(model2_dict)
 
     iter_num = 0
     db_train = TUDataset(train_image_paths, train_label_paths, mode='train')
@@ -655,7 +657,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
         # model.train()
         trep = epoch_step - epoch_step_val
         # train_image_paths, train_label_paths = aug_crop(train_image_paths, train_label_paths,512,512)
-        L = random.sample(range(0, 140), 140)
+        # L = random.sample(range(0, 140), 140)
         # n = L[epoch_num]
         # train_image_paths1, train_label_paths1 = aug_crop(train_image_paths, train_label_paths, 29, 6000, 6000)
 
@@ -681,21 +683,21 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     outputs = model(image_batch)
                     lossp = []
                     weightt = [0.1, 0.2, 0.3, 0.4, 1]
-                    k = 1
+                    # k = 1
 
-                    # for j in outputs[:-1]:
-                    #     los = dice_loss(j, label_batch)
-                    #     los2 = (focal_loss1(j, label_batch))  # +/2
-                    #     # if k == 4:
-                    #     auxloss = ((los+los2)/2)
-                    #               # * (k*0.05)
-                    #     lossp.append(auxloss)
-                    #     # else:
-                    #     #     loss.append((los + los2)*(j+1)*0.1)
-                    #     k += 1
-                    # lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*focal_loss1(outputs[-1], label_batch)
-                    # lossp.append(lossmain)
-                    # loss = sum(lossp)
+                    for j in outputs[:-1]:
+                        los = dice_loss(j, label_batch)
+                        los2 = ce_loss(j, label_batch) # +/2
+                        # if k == 4:
+                        auxloss = ((los+los2)/2)
+                                  # * (k*0.05)
+                        lossp.append(auxloss)
+                        # else:
+                        #     loss.append((los + los2)*(j+1)*0.1)
+                        # k += 1
+                    lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*ce_loss(outputs[-1], label_batch)
+                    lossp.append(lossmain)
+                    loss = sum(lossp)
 
                     # lossv1.append(lossp[0])
                     # lossv2.append(lossp[1])
@@ -710,9 +712,11 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     # outputs = outputs[1]
                     # lossaux = (focal_loss1(aux, label_batch) + dice_loss(aux, label_batch)) / 2
 
-                    loss_dice = dice_loss(outputs, label_batch[:].long())
-                    loss_ce = focal_loss1(outputs, label_batch)
-                    loss = 0.5 * loss_ce + 0.5 * loss_dice
+                    # loss_dice = dice_loss(outputs, label_batch, softmax = True)
+                    # # loss_ce = focal_loss1(outputs, label_batch)
+                    # loss_ce = CE_Loss(outputs,label_batch)
+                    # loss = 0.5 * loss_ce + 0.5 * loss_dice
+
                     # los = loss + lossaux
 
                     #
@@ -727,7 +731,9 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     # los = dice_loss(aux, label_batch, softmax=True) +loss_dice
                     # los = lovasz_softmax(aux, label_batch) + loss_ce
                     # los = ce_loss(aux, label_batch) + ce_loss(outputs, label_batch)
-                    # outputs = outputs[-1]
+
+                    outputs = outputs[-1]
+
                     with torch.no_grad():
                         tmiou, tacc, toa, tf1, _ = f_score(outputs, label_batch)
                     # base_lr = 0.006
@@ -774,7 +780,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
         # print('acc: %.3f ||  oa: %.3f || mIou: %.3f  || loss: %.3f' % (ttacc / (i+1), ttoa / (i+1), ttmiou / (i+1), ttloss / (i+1)))
 
         if (epoch_num+1) % 10 == 0:
-        # if epoch_num == 0 or 1:
+        # if epoch_num != 20 :
         # while True:
         #     val_image_paths, val_label_paths = aug_crop(val_image_paths, val_label_paths)
         #     val_image_paths1, val_label_paths1 = aug_crop( val_image_paths, val_label_paths, 8, 6000, 6000)
@@ -789,7 +795,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     vlabel_batch = vlabel_batch.cuda()
                     with torch.no_grad():
                         outputss = model(vimage_batch)
-                        # outputss = outputss[-1]
+                        outputss = outputss[-1]
                         vloss_ce = ce_loss(outputss, vlabel_batch[:].long())
                         vloss_dice = dice_loss(outputss, vlabel_batch, softmax=True)
                         vloss = 0.5 * vloss_ce + 0.5 * vloss_dice

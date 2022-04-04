@@ -572,7 +572,8 @@ class HighResolutionNet(nn.Module):
                 output, src[level_index],
                 # memory_mask=attn_mask,
                 memory_key_padding_mask=None,  # here we do not apply masking on padded region
-                pos=pos[level_index], query_pos=query_embed
+                pos=pos[level_index],
+                query_pos=query_embed
             )
 
             output = self.transformer_self_attention_layers[i](
