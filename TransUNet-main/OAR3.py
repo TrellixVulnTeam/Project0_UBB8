@@ -386,7 +386,7 @@ class HighResolutionNet(nn.Module):
 
         # assert len(predictions_class) == 10 + 1
 
-
+        # return outputs_mask
         return predictions_mask
 
 

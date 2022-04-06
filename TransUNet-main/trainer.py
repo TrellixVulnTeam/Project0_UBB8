@@ -624,8 +624,8 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
     # model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\model\ep620-loss0.061-acc0.889.pth'))
 
     # a = torch.load(r'F:\lab\model\xception_pytorch_imagenet.pth')
-    # a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
-    a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
+    a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
+    # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
     model2_dict = model.state_dict()
     state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
     model2_dict.update(state_dict)

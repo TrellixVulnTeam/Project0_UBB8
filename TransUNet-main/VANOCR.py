@@ -190,7 +190,7 @@ class VAN(nn.Module):
         self.depths = depths
         self.num_stages = num_stages
         self.linear = linear
-        self.fpn = VANFPN.FPN()
+        self.fpn = VANFPN.FPN(256,160,64,32)
         # self.head = FPN()
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
         cur = 0
