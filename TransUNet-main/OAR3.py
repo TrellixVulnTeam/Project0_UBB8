@@ -354,10 +354,12 @@ class HighResolutionNet(nn.Module):
         # auxout = self.aux_head(x0)
         # output = self.gather_head(x0,auxout)
         # output = output.reshape(6,4,256)
-        outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[0])
-        predictions_mask.append(outputs_mask)
+        # outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[0])
+        # predictions_mask.append(outputs_mask)
         for i in range(3):
-            level_index = (i % 3)
+            # level_index = (i % 3)
+            level_index = 2
+
             # attn_mask[torch.where(attn_mask.sum(-1) == attn_mask.shape[-1])] = False
             # attention: cross-attention first
             output = self.transformer_cross_attention_layers[i](

@@ -389,7 +389,8 @@ def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
     # pc = float(torch.sum(tp)) / (float(torch.sum(tp + fp)) + 1e-5)
     # se =(float(tp) / (float(tp + fn) + 1e-5))
     # F1 = 2 * se * pc / (se + pc + 1e-5)
-    F1 = (2*tp/(2*tp+fp+fn+smooth))[:-1].mean()
+    f1 = (2 * tp / (2 * tp + fp + fn + smooth))[:-1]
+    mF1 = f1.mean()
     # oa = torch.mean((tp + tn) / (tp + fn + fp + tn))
     # oa2 = (tpp + tnn) / (tpp + fnn + fpp + tnn)
     # oa2 = torch.mean(oa2)
@@ -408,7 +409,7 @@ def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
     iou_noground = iou[:-1]
     miou = torch.mean(iou_noground)
     # return loss.sum(dim=0).mean()
-    return miou.item(), acc.mean().item(), oa.item(), F1.item(), iou_ground.item()
+    return miou.item(), acc.mean().item(), oa.item(), mF1.item(), f1, iou_ground.item()
 
 
 def get_lr(optimizer):
@@ -648,6 +649,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
         vvoa = 0
         vvloss = 0
         vvf1 = 0
+        vvmf1 = 0
         vvgiou =0
         ttf1 = 0
         ttacc = 0
@@ -735,7 +737,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     outputs = outputs[-1]
 
                     with torch.no_grad():
-                        tmiou, tacc, toa, tf1, _ = f_score(outputs, label_batch)
+                        tmiou, tacc, toa, tf1, _, _ = f_score(outputs, label_batch)
                     # base_lr = 0.006
                     # lr = adjust_learning_rate(optimizer,
                     #                           base_lr,
@@ -804,10 +806,11 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                         # loss_aux = [crit(lgt, vlabel_batch) for crit, lgt in
                         #             zip([OhemCELoss(0.7) for _ in range(4)], logits_aux)]
                         # vloss = loss_pre
-                        vmiou, vacc, voa, vf1, vgiou = f_score(outputss, vlabel_batch)
+                        vmiou, vacc, voa, vmf1, vf1, vgiou = f_score(outputss, vlabel_batch)
                         vvmiou += vmiou
                         vvacc += vacc
                         vvoa += voa
+                        vvmf1 += vmf1
                         vvf1 += vf1
                         vvgiou += vgiou
                         vvloss += vloss
@@ -815,6 +818,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                                         'oa': vvoa / (j+1),
                                         'mIou': vvmiou / (j + 1),
                                         'acc': vvacc / (j + 1),
+                                        'mf1': vvmf1/(j+1),
                                         'f1': vvf1/(j+1),
                                         'giou': vvgiou/(j+1)
                                         })
