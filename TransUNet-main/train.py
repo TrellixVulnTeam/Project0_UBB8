@@ -32,7 +32,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--num_classes', type=int,
                     # default=9, help='output channel of network')
-                    default=6, help='output channel of network')
+                    default=16, help='output channel of network')
 parser.add_argument('--max_epochs', type=int,
                     default=300, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int,
@@ -113,9 +113,9 @@ if __name__ == "__main__":
     # yy = net(xx)
     # print(yy.size())
 
-    image_paths = glob.glob(r'D:\train\*tif')
+    image_paths = glob.glob(r'F:\lab\GID\gidTrain\*tif')
     image_paths.sort()
-    label_paths = glob.glob(r'D:\labelgray\*tif')
+    label_paths = glob.glob(r'F:\lab\GID\gidLabel\*tif')
     label_paths.sort()
     epoch = args.max_epochs
     # trainer[dataset_name](args, net, snapshot_path, trainpath, trainlabel )
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         print("Number of val images: ", len(val_image_paths))
         return train_image_paths, train_label_paths, val_image_paths, val_label_paths
 
-    image_path = r'D:\train'
+    image_path = r'F:\lab\GID\gidTrain'
     num_classes = args.num_classes
     batch_size = args.batch_size
     train_num = len(os.listdir(image_path))

@@ -367,7 +367,7 @@ def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
     size_squeeze = temp_squ.size(0)*temp_squ.size(1)
     oa = diff/size_squeeze
 
-    temp_inputs = get_one_hot(temp_squ, 6)
+    temp_inputs = get_one_hot(temp_squ, c)
     tp = torch.sum(temp_target * temp_inputs, axis=[0, 1])
     fp = torch.sum(temp_inputs, axis=[0, 1]) - tp
     fn = torch.sum(temp_target, axis=[0, 1]) - tp
@@ -503,7 +503,7 @@ class TUDataset(Dataset):  #  import torch.utils.data as D   (D.DataSet)
         image = imgread(self.image_paths[index])
         if self.mode == "train":
             # image = self.image_paths[index]
-            label = imgread(self.label_paths[index])-1
+            label = imgread(self.label_paths[index])
             # label = imgread(self.label_paths[index], )-1
             image, label = DataAugmentation(image, label, self.mode)
             #  传入一个内存连续的array对象,pytorch要求传入的numpy的array对象必须是内存连续
@@ -511,7 +511,7 @@ class TUDataset(Dataset):  #  import torch.utils.data as D   (D.DataSet)
             return self.as_tensor(image_array), label.astype(np.int64)
         elif self.mode == "val":
             # image = self.image_idx[index]
-            label = imgread(self.label_paths[index])-1
+            label = imgread(self.label_paths[index])
             # label = imgread(self.label_paths[index])-1
             # # 常规来讲,验证集不需要数据增强,但是这次数据测试集和训练集不同域,为了模拟不同域,验证集也进行数据增强
             # image, label = DataAugmentation(image, label, self.mode)
@@ -622,15 +622,15 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
     # iterator = tqdm(range(epoch))
     # lr = args.base_lr
     model = model.cuda()
-    # model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\model\ep620-loss0.061-acc0.889.pth'))
+    model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\savemodel\ep290-loss0.612-acc0.400.pth'))
 
     # a = torch.load(r'F:\lab\model\xception_pytorch_imagenet.pth')
-    a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
-    # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
-    model2_dict = model.state_dict()
-    state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
-    model2_dict.update(state_dict)
-    model.load_state_dict(model2_dict)
+    # a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
+    # # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
+    # model2_dict = model.state_dict()
+    # state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
+    # model2_dict.update(state_dict)
+    # model.load_state_dict(model2_dict)
 
     iter_num = 0
     db_train = TUDataset(train_image_paths, train_label_paths, mode='train')
@@ -687,19 +687,19 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     weightt = [0.1, 0.2, 0.3, 0.4, 1]
                     # k = 1
 
-                    for j in outputs[:-1]:
-                        los = dice_loss(j, label_batch)
-                        los2 = ce_loss(j, label_batch) # +/2
-                        # if k == 4:
-                        auxloss = ((los+los2)/2)
-                                  # * (k*0.05)
-                        lossp.append(auxloss)
+                    # for j in outputs[:-1]:
+                    #     los = dice_loss(j, label_batch)
+                    #     los2 = ce_loss(j, label_batch) # +/2
+                    #     # if k == 4:
+                    #     auxloss = ((los+los2)/2)
+                    #               # * (k*0.05)
+                    #     lossp.append(auxloss)
                         # else:
                         #     loss.append((los + los2)*(j+1)*0.1)
                         # k += 1
-                    lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*ce_loss(outputs[-1], label_batch)
-                    lossp.append(lossmain)
-                    loss = sum(lossp)
+                    # lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*ce_loss(outputs[-1], label_batch)
+                    # lossp.append(lossmain)
+                    # loss = sum(lossp)
 
                     # lossv1.append(lossp[0])
                     # lossv2.append(lossp[1])
@@ -714,10 +714,10 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     # outputs = outputs[1]
                     # lossaux = (focal_loss1(aux, label_batch) + dice_loss(aux, label_batch)) / 2
 
-                    # loss_dice = dice_loss(outputs, label_batch, softmax = True)
-                    # # loss_ce = focal_loss1(outputs, label_batch)
-                    # loss_ce = CE_Loss(outputs,label_batch)
-                    # loss = 0.5 * loss_ce + 0.5 * loss_dice
+                    loss_dice = dice_loss(outputs, label_batch, softmax = True)
+                    # loss_ce = focal_loss1(outputs, label_batch)
+                    loss_ce = CE_Loss(outputs,label_batch)
+                    loss = 0.5 * loss_ce + 0.5 * loss_dice
 
                     # los = loss + lossaux
 
@@ -734,7 +734,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     # los = lovasz_softmax(aux, label_batch) + loss_ce
                     # los = ce_loss(aux, label_batch) + ce_loss(outputs, label_batch)
 
-                    outputs = outputs[-1]
+                    # outputs = outputs[-1]
 
                     with torch.no_grad():
                         tmiou, tacc, toa, tf1, _, _ = f_score(outputs, label_batch)
@@ -797,7 +797,7 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     vlabel_batch = vlabel_batch.cuda()
                     with torch.no_grad():
                         outputss = model(vimage_batch)
-                        outputss = outputss[-1]
+                        # outputss = outputss[-1]
                         vloss_ce = ce_loss(outputss, vlabel_batch[:].long())
                         vloss_dice = dice_loss(outputss, vlabel_batch, softmax=True)
                         vloss = 0.5 * vloss_ce + 0.5 * vloss_dice
