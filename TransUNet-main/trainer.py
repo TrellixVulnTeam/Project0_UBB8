@@ -503,16 +503,16 @@ class TUDataset(Dataset):  #  import torch.utils.data as D   (D.DataSet)
         image = imgread(self.image_paths[index])
         if self.mode == "train":
             # image = self.image_paths[index]
-            label = imgread(self.label_paths[index])
-            # label = imgread(self.label_paths[index], )-1
+            # label = imgread(self.label_paths[index])
+            label = imgread(self.label_paths[index], )-1
             image, label = DataAugmentation(image, label, self.mode)
             #  传入一个内存连续的array对象,pytorch要求传入的numpy的array对象必须是内存连续
             image_array = np.ascontiguousarray(image)
             return self.as_tensor(image_array), label.astype(np.int64)
         elif self.mode == "val":
             # image = self.image_idx[index]
-            label = imgread(self.label_paths[index])
-            # label = imgread(self.label_paths[index])-1
+            # label = imgread(self.label_paths[index])
+            label = imgread(self.label_paths[index])-1
             # # 常规来讲,验证集不需要数据增强,但是这次数据测试集和训练集不同域,为了模拟不同域,验证集也进行数据增强
             # image, label = DataAugmentation(image, label, self.mode)
             # image = truncated_linear_stretch(image, 0.5)
@@ -622,15 +622,15 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
     # iterator = tqdm(range(epoch))
     # lr = args.base_lr
     model = model.cuda()
-    model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\savemodel\ep290-loss0.612-acc0.400.pth'))
+    # model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\savemodel\ep290-loss0.612-acc0.400.pth'))
 
     # a = torch.load(r'F:\lab\model\xception_pytorch_imagenet.pth')
-    # a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
-    # # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
-    # model2_dict = model.state_dict()
-    # state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
-    # model2_dict.update(state_dict)
-    # model.load_state_dict(model2_dict)
+    a = torch.load(r'E:\data\weight\van_tiny_754.pth.tar')['state_dict']
+    # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
+    model2_dict = model.state_dict()
+    state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
+    model2_dict.update(state_dict)
+    model.load_state_dict(model2_dict)
 
     iter_num = 0
     db_train = TUDataset(train_image_paths, train_label_paths, mode='train')
