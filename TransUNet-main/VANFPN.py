@@ -178,6 +178,20 @@ class OverlapPatchEmbed(nn.Module):
         return x, H, W
 
 
+def conv3x3(in_planes, out_planes, stride=1, has_bias=False):
+    "3x3 convolution with padding"
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+                     padding=1, bias=has_bias)
+
+
+def conv3x3_gn_relu(in_planes, out_planes, stride=1):
+    return nn.Sequential(
+            conv3x3(in_planes, out_planes, stride),
+            nn.GroupNorm(out_planes,out_planes),
+            nn.ReLU(inplace=True),
+            )
+
+
 class FPN(nn.Module):
     def __init__(self, d32,d16,d8,d4):
         super(FPN, self).__init__()
@@ -201,7 +215,7 @@ class FPN(nn.Module):
         # self.smooth3 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
 
         # self.semantic_branch = nn.Conv2d(256, 128, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
+        self.conv2 = conv3x3_gn_relu(256, 256)
         # self.conv3 = nn.Conv2d(128, 20, kernel_size=1, stride=1, padding=0)
 
         # self.gn1 = nn.GroupNorm(128, 128)
@@ -231,23 +245,23 @@ class FPN(nn.Module):
         # p2 = self.smooth3(p2)
         _, _, h, w = p2.size()
 
-        s5 = F.relu(self.gn2(self.conv2(p5)))
+        s5 = self.conv2(p5)
         out.append(s5)
         # s5 = self._upsample(s5, h, w)
         # s5 = self._upsample(F.relu(self.gn2(self.conv2(s5))), h, w)
 
         # s5 = self._upsample(F.relu(self.gn1(self.semantic_branch(s5))), h, w)
 
-        s4 = F.relu(self.gn2(self.conv2(p4)))
+        s4 = self.conv2(p4)
         out.append(s4)
-        s4 = self._upsample(s4, h, w)
+        # s4 = self._upsample(s4, h, w)
         # s4 = self._upsample(F.relu(self.gn1(self.semantic_branch(s4))), h, w)
 
-        # s3 = F.relu(self.gn2(self.conv2(p3)))
-        out.append(p3)
+        s3 = self.conv2(p3)
+        out.append(s3)
         # s3 = self._upsample(F.relu(self.gn1(self.semantic_branch(p3))), h, w)
-
-        out.append(p2)
+        s2 = self.conv2(p2)
+        out.append(s2)
         # s2 = F.relu(self.gn1(self.semantic_branch(p2)))
         # print(self._upsample(self.conv3(s2 + s3 + s4 + s5), 4 * h, 4 * w).size())
         # end = self._upsample(self.conv3(s2 + s3 + s4 + s5), 4 * h, 4 * w)
