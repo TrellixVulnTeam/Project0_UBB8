@@ -342,7 +342,7 @@ def Dice_loss(inputs, target, beta=1, smooth=1e-5):
     return dice_loss
 
 
-def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
+def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5,):
     n, c, h, w = inputs.size()
     # arra = target.numpy()
     # arra1 = arra[0, :, :] *50
@@ -350,6 +350,13 @@ def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
     # image = cvtColor(image)
     # arrai
     # image.show()
+
+    # nn = target.unique()
+    # mm = len(nn)-1
+    # if len(nn) < 6:
+    #     print(len(nn))
+    #     if 4 in nn:
+    #         print("zhebudui")
     target_oh = get_one_hot(target, c)  # [:, :, :, :5]
     target_v = target.view(n, -1)
     nt, ht, wt, ct = target_oh.size()
@@ -390,7 +397,7 @@ def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
     # se =(float(tp) / (float(tp + fn) + 1e-5))
     # F1 = 2 * se * pc / (se + pc + 1e-5)
     f1 = (2 * tp / (2 * tp + fp + fn + smooth))[:-1]
-    mF1 = f1.mean()
+    mF1 = f1[f1!=0].mean()
     # oa = torch.mean((tp + tn) / (tp + fn + fp + tn))
     # oa2 = (tpp + tnn) / (tpp + fnn + fpp + tnn)
     # oa2 = torch.mean(oa2)
@@ -407,7 +414,7 @@ def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
     iou = tp / (fp + fn + tp + smooth)
     iou_ground = iou[-1]
     iou_noground = iou[:-1]
-    miou = torch.mean(iou_noground)
+    miou = iou_noground[iou_noground!=0].mean()
     # return loss.sum(dim=0).mean()
     return miou.item(), acc.mean().item(), oa.item(), mF1.item(), f1, iou_ground.item()
 
@@ -694,9 +701,9 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     #     auxloss = ((los+los2)/2)
                     #               # * (k*0.05)
                     #     lossp.append(auxloss)
-                        # else:
-                        #     loss.append((los + los2)*(j+1)*0.1)
-                        # k += 1
+                    #     # else:
+                    #     #     loss.append((los + los2)*(j+1)*0.1)
+                    #     # k += 1
                     # lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*ce_loss(outputs[-1], label_batch)
                     # lossp.append(lossmain)
                     # loss = sum(lossp)
@@ -719,9 +726,10 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     loss_ce = CE_Loss(outputs,label_batch)
                     loss = 0.5 * loss_ce + 0.5 * loss_dice
 
+
                     # los = loss + lossaux
 
-                    #
+
                     # bisenet loss
                     # outputs, *logits_aux = model(image_batch)
                     # loss_pre = OhemCELoss(0.7)(outputs, label_batch)

@@ -98,8 +98,8 @@ if __name__ == "__main__":
 
     # net = VAN.van_tiny().cuda()
 
-    # net = VANOCR.van_tiny().cuda()
-    net = VANPFSeg.van_tiny().cuda()
+    net = VANOCR.van_tiny().cuda()
+    # net = VANPFSeg.van_tiny().cuda()
 
     # net = VANOCR.van_small().cuda()
 
