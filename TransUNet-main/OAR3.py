@@ -224,8 +224,8 @@ class HighResolutionNet(nn.Module):
                                                  dropout=0.05,
                                                  )
         self.cls_head = nn.Sequential(nn.Conv2d(
-            256, 6, kernel_size=1, stride=1, padding=0, bias=True),
-            ModuleHelper.BNReLU(num_features=6))
+            256, num_classes, kernel_size=1, stride=1, padding=0, bias=True),
+            ModuleHelper.BNReLU(num_features=num_classes))
         self.head = nn.Sequential(nn.Conv2d(
             1024, 256, kernel_size=1, stride=1, padding=0, bias=True),
             ModuleHelper.BNReLU(num_features=256))
@@ -285,7 +285,7 @@ class HighResolutionNet(nn.Module):
     def _upsample(self, x, h, w):
         return F.interpolate(x, size=(h, w), mode='bilinear', align_corners=True)
 
-    def forward_prediction_heads(self, output, mask_features, attn_mask_target_size):
+    def forward_prediction_heads(self, output, mask_features ):
         decoder_output = self.decoder_norm(output)
         # decoder_output = decoder_output.transpose(0, 1)
         decoder_output = decoder_output.transpose(0, 1)
@@ -295,8 +295,10 @@ class HighResolutionNet(nn.Module):
 
         # outputs_mask = torch.einsum("bqf,bfhw->bqhw", decoder_output, mask_features)
 
-        outputs_mask = self.ocr_distri_head(mask_features,decoder_output)
-        outputs_mask = self.cls_head(outputs_mask)
+        # outputs_mask = self.ocr_distri_head(mask_features,decoder_output)
+        # outputs_mask = self.cls_head(outputs_mask)
+
+        outputs_mask = self.cls_head(mask_features)
 
         # NOTE: prediction is of higher-resolution
         # [B, Q, H, W] -> [B, Q, H*W] -> [B, h, Q, H*W] -> [B*h, Q, HW]
@@ -340,13 +342,14 @@ class HighResolutionNet(nn.Module):
         size_list = []
 
         src = []
-        for i in range(3):
-            size_list.append(x[i].shape[-2:])
-            pos.append(self.pe_layer(x[i], None).flatten(2))
-            src.append((x[i]).flatten(2) + self.level_embed.weight[i][None, :, None])
-            # flatten NxCxHxW to HWxNxC
-            pos[-1] = pos[-1].permute(2, 0, 1)
-            src[-1] = src[-1].permute(2, 0, 1)
+
+        # for i in range(3):
+        #     size_list.append(x[i].shape[-2:])
+        #     pos.append(self.pe_layer(x[i], None).flatten(2))
+        #     src.append((x[i]).flatten(2) + self.level_embed.weight[i][None, :, None])
+        #     # flatten NxCxHxW to HWxNxC
+        #     pos[-1] = pos[-1].permute(2, 0, 1)
+        #     src[-1] = src[-1].permute(2, 0, 1)
 
         predictions_class = []
         predictions_mask = []
@@ -354,42 +357,44 @@ class HighResolutionNet(nn.Module):
         # auxout = self.aux_head(x0)
         # output = self.gather_head(x0,auxout)
         # output = output.reshape(6,4,256)
-        # outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[0])
+        outputs_mask, attn_mask = self.forward_prediction_heads(output, x0 )
         # predictions_mask.append(outputs_mask)
-        for i in range(3):
-            # level_index = (i % 3)
-            level_index = 2
 
-            # attn_mask[torch.where(attn_mask.sum(-1) == attn_mask.shape[-1])] = False
-            # attention: cross-attention first
-            output = self.transformer_cross_attention_layers[i](
-                output, src[level_index],
-                # memory_mask=attn_mask,
-                memory_key_padding_mask=None,  # here we do not apply masking on padded region
-                pos=pos[level_index], query_pos=query_embed
-            )
 
-            output = self.transformer_self_attention_layers[i](
-                output, tgt_mask=None,
-                tgt_key_padding_mask=None,
-                query_pos=query_embed
-            )
-
-            # FFN
-            output = self.transformer_ffn_layers[i](
-                output
-            )
-            # output = self.decoder_norm[i](output)
-            # if i == 2:
-
-            outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[(i + 1) % 3])
-            # predictions_class.append(outputs_class)
-            predictions_mask.append(outputs_mask)
+        # for i in range(3):
+        #     level_index = (i % 3)
+        #     # level_index = 2
+        #
+        #     # attn_mask[torch.where(attn_mask.sum(-1) == attn_mask.shape[-1])] = False
+        #     # attention: cross-attention first
+        #     output = self.transformer_cross_attention_layers[i](
+        #         output, src[level_index],
+        #         # memory_mask=attn_mask,
+        #         memory_key_padding_mask=None,  # here we do not apply masking on padded region
+        #         pos=pos[level_index], query_pos=query_embed
+        #     )
+        #
+        #     output = self.transformer_self_attention_layers[i](
+        #         output, tgt_mask=None,
+        #         tgt_key_padding_mask=None,
+        #         query_pos=query_embed
+        #     )
+        #
+        #     # FFN
+        #     output = self.transformer_ffn_layers[i](
+        #         output
+        #     )
+        #
+        #     if i == 2:
+        #
+        #         outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[(i + 1) % 3])
+        #     # predictions_class.append(outputs_class)
+        #         predictions_mask.append(outputs_mask)
 
         # assert len(predictions_class) == 10 + 1
 
-        # return outputs_mask
-        return predictions_mask
+        return outputs_mask
+        # return predictions_mask
 
 
     def init_weights(self, pretrained='', ):
