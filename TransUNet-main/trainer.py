@@ -24,6 +24,7 @@ from PIL import ImageEnhance
 # import visdom
 from itertools import filterfalse as ifilterfalse
 from torch.autograd import Variable
+from lova import lovasz_softmax
 # vis = visdom.Visdom()
 
 
@@ -181,74 +182,29 @@ def DataAugmentation(image, label, mode):
 #         F_loss = at * (1 - pt) ** self.gamma * BCE_loss
 #         return F_loss.mean()
 
-def isnan(x):
-    return x != x
+# def isnan(x):
+#     return x != x
 
 
-def mean(l, ignore_nan=False, empty=0):
-    """
-    nanmean compatible with generators.
-    """
-    l = iter(l)
-    if ignore_nan:
-        l = ifilterfalse(isnan, l)
-    try:
-        n = 1
-        acc = next(l)
-    except StopIteration:
-        if empty == 'raise':
-            raise ValueError('Empty mean')
-        return empty
-    for n, v in enumerate(l, 2):
-        acc += v
-    if n == 1:
-        return acc
-    return acc / n
-
-
-def lovasz_softmax(probas, labels, classes='present', per_image=False, ignore=None):
-    if per_image:
-        loss = mean(lovasz_softmax_flat(*flatten_probas(prob.unsqueeze(0), lab.unsqueeze(0), ignore), classes=classes)
-                          for prob, lab in zip(probas, labels))
-    else:
-        loss = lovasz_softmax_flat(*flatten_probas(probas, labels, ignore), classes=classes)
-    return loss
-
-
-def lovasz_grad(gt_sorted):
-    p = len(gt_sorted)
-    gts = gt_sorted.sum()
-    intersection = gts - gt_sorted.float().cumsum(0)
-    union = gts + (1 - gt_sorted).float().cumsum(0)
-    jaccard = 1. - intersection / union
-    if p > 1: # cover 1-pixel case
-        jaccard[1:p] = jaccard[1:p] - jaccard[0:-1]
-    return jaccard
-
-
-def lovasz_softmax_flat(probas, labels, classes='present'):
-    if probas.numel() == 0:
-        # only void pixels, the gradients should be 0
-        return probas * 0.
-    C = probas.size(1)
-    losses = []
-    class_to_sum = list(range(C)) if classes in ['all', 'present'] else classes
-    for c in class_to_sum:
-        fg = (labels == c).float() # foreground for class c
-        if (classes == 'present' and fg.sum() == 0):
-            continue
-        if C == 1:
-            if len(classes) > 1:
-                raise ValueError('Sigmoid output possible only with 1 class')
-            class_pred = probas[:, 0]
-        else:
-            class_pred = probas[:, c]
-        errors = (Variable(fg) - class_pred).abs()
-        errors_sorted, perm = torch.sort(errors, 0, descending=True)
-        perm = perm.data
-        fg_sorted = fg[perm]
-        losses.append(torch.dot(errors_sorted, Variable(lovasz_grad(fg_sorted))))
-    return mean(losses)
+# def mean(l, ignore_nan=False, empty=0):
+#     """
+#     nanmean compatible with generators.
+#     """
+#     l = iter(l)
+#     if ignore_nan:
+#         l = ifilterfalse(isnan, l)
+#     try:
+#         n = 1
+#         acc = next(l)
+#     except StopIteration:
+#         if empty == 'raise':
+#             raise ValueError('Empty mean')
+#         return empty
+#     for n, v in enumerate(l, 2):
+#         acc += v
+#     if n == 1:
+#         return acc
+#     return acc / n
 
 
 def flatten_probas(probas, labels, ignore=None):
@@ -388,8 +344,8 @@ def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
     # pc = float(torch.sum(tp)) / (float(torch.sum(tp + fp)) + 1e-5)
     # se =(float(tp) / (float(tp + fn) + 1e-5))
     # F1 = 2 * se * pc / (se + pc + 1e-5)
-    f1 = (2*tp/(2*tp+fp+fn+smooth))[:-1]
-    mF1 = f1.mean()
+    # f1 = (2*tp/(2*tp+fp+fn+smooth))[:-1]
+    # mF1 = f1[f1 != 0].mean()
     # oa = torch.mean((tp + tn) / (tp + fn + fp + tn))
     # oa2 = (tpp + tnn) / (tpp + fnn + fpp + tnn)
     # oa2 = torch.mean(oa2)
@@ -398,18 +354,18 @@ def f_score(inputs, target, beta=1, smooth=1e-5, threhold=0.5):
     # size = target_oh.size(0) * target_oh.size(1) * target_oh.size(2) * target_oh.size(3)
     # corr = torch.sum(inp == ta)
     # oaa = float(corr) / float(size)
-    acc = torch.mean(tp / (tp + fp + smooth))
+    # acc = torch.mean(tp / (tp + fp + smooth))
     # recall = tp/(tp+fn + smooth)
     # ff = 2/(1/acc +1/recall)
     # score = ((1 + beta ** 2) * tp + smooth) / ((1 + beta ** 2) * tp + beta ** 2 * fn + fp + smooth)
     # score = torch.mean(score)
-    iou = tp / (fp + fn + tp + smooth)
-    iou_ground = iou[-1]
-    iou_noground = iou[:-1]
-    miou = torch.mean(iou_noground)
+    # iou = tp / (fp + fn + tp + smooth)
+    # iou_ground = iou[-1]
+    # iou_noground = iou[:-1]
+    # miou = torch.mean(iou_noground[iou_noground != 0])
     # return loss.sum(dim=0).mean()
-    return miou.item(), acc.mean().item(), oa.item(), mF1.item(), f1, iou_ground.item(),
-
+    # return miou.item(), acc.mean().item(), oa.item(), mF1.item(), f1, iou_ground.item(),
+    return oa.item(), tp, fp, fn
 
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
@@ -624,7 +580,8 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
     # model.load_state_dict(torch.load(r'D:\softwares\PyCharm\pythonProject\TransUNet-main\savemodel\ep010-loss0.000-acc0.000.pth'))
 
     a = torch.load(r'D:\weight\van_tiny_754.pth.tar')['state_dict']
-    # a = torch.load(r'E:\data\weight\van_small_811.pth.tar')['state_dict']
+    # a = torch.load(r'D:\weight\van_small_811.pth.tar')['state_dict']
+    # a = torch.load(r'D:\download\CS_scenes_60000-r2-79.7.pth')
     model2_dict = model.state_dict()
     state_dict = {k: v for k, v in a.items() if k in model2_dict.keys()}
     model2_dict.update(state_dict)
@@ -642,34 +599,30 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
     mioulist = []
 
     for epoch_num in range(epoch):
-        vvacc = 0
-        vvmiou = 0
+        vvfp = 0
+        vvtp = 0
         vvoa = 0
         vvloss = 0
-        vvmf1 = 0
+        vvfn = 0
         vvf1 = 0
         vvgiou =0
-        ttf1 = 0
+
         ttacc = 0
         ttmiou = 0
         ttoa = 0
         ttloss = 0
+        tttp = 0
+        ttfp = 0
+        ttoa = 0
+        ttfn = 0
+
+
         # model.train()
         trep = epoch_step - epoch_step_val
         # train_image_paths, train_label_paths = aug_crop(train_image_paths, train_label_paths,512,512)
-        L = random.sample(range(0, 140), 140)
-        # n = L[epoch_num]
         # train_image_paths1, train_label_paths1 = aug_crop(train_image_paths, train_label_paths, 29, 6000, 6000)
 
-        # del train_image_paths1, train_label_paths1
-        # lossv1 = []
-        # lossv2 = []
-        # lossv3 = []
-        # lossv4 = []
-        # lossv5 = []
-        # lossv6 = []
-        # lossv7 = []
-        # lossv8 = []
+
         focal_loss1 = FocalLoss()
         with tqdm(total=trep, desc=f'Epoch {epoch_num + 1}/{epoch}', postfix=dict, mininterval=0.3, colour='cyan') as pbar:
             # if __name__ == '__main__':
@@ -686,7 +639,8 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     k = 1
 
                     for j in outputs[:-1]:
-                        los = dice_loss(j, label_batch)
+                        los = dice_loss(j, label_batch,  softmax=True)
+                        # los = lovasz_softmax(F.softmax(j, dim=1), label_batch)
                         los2 = (focal_loss1(j, label_batch))  # +/2
                         # if k == 4:
                         auxloss = ((los+los2)/2)
@@ -695,27 +649,20 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                         # else:
                         #     loss.append((los + los2)*(j+1)*0.1)
                         k += 1
-                    lossmain = 0.5*dice_loss(outputs[-1], label_batch)+0.5*focal_loss1(outputs[-1], label_batch)
+                    lossmain = 0.5*dice_loss(outputs[-1], label_batch, softmax=True)+0.5*focal_loss1(outputs[-1], label_batch)
+                    # lossmain = 0.5*lovasz_softmax(F.softmax(outputs[-1], dim=1), label_batch)+0.5*focal_loss1(outputs[-1], label_batch)
                     lossp.append(lossmain)
                     loss = sum(lossp)
-
-                    # lossv1.append(lossp[0])
-                    # lossv2.append(lossp[1])
-                    # lossv3.append(lossp[2])
-                    # lossv4.append(lossp[3])
-                    # lossv5.append(lossp[4])
-                    # lossv6.append(lossp[5])
-                    # lossv7.append(lossp[6])
-                    # lossv8.append(lossp[7])
 
                     # aux = outputs[0]
                     # outputs = outputs[1]
                     # lossaux = (focal_loss1(aux, label_batch) + dice_loss(aux, label_batch)) / 2
 
-                    # loss_dice = dice_loss(outputs, label_batch[:].long())
+                    # loss_dice = dice_loss(outputs, label_batch[:].long(),softmax=True)
                     # loss_ce = ce_loss(outputs, label_batch)
                     # # loss_ce = focal_loss1(outputs, label_batch)
                     # loss = 0.5 * loss_ce + 0.5 * loss_dice
+
                     # los = loss + lossaux
 
                     #
@@ -733,7 +680,8 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
 
                     outputs = outputs[-1]
                     with torch.no_grad():
-                        tmiou, tacc, toa, tf1, _, _ = f_score(outputs, label_batch)
+                        # tmiou, tacc, toa, tf1, _, _ = f_score(outputs, label_batch)
+                        oa, tp, fp, fn = f_score(outputs, label_batch)
                     # base_lr = 0.006
                     # lr = adjust_learning_rate(optimizer,
                     #                           base_lr,
@@ -744,18 +692,15 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
-                    ttacc += tacc
-                    ttmiou += tmiou
-                    ttoa += toa
+                    tttp += tp
+                    ttfp += fp
+                    ttoa += oa
+                    ttfn += fn
+                    vvloss += loss.item()
+                    iou = tttp / (ttfp + ttfn + tttp + 1e-5)
+                    f1 = ((2 * tttp) / (2 * tttp + ttfp + ttfn + 1e-5))
                     ttloss += loss.item()
-                    ttf1 += tf1
-
                     lr = get_lr(optimizer)
-
-                    miou = ttmiou / (i + 1)
-
-                    lrlist.append(lr)
-                    mioulist.append(tmiou)
 
                     # lr_ = lr * (1.0 - iter_num / max_iterations) ** 0.9
                     # for param_group in optimizer.param_groups:
@@ -768,14 +713,16 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                     # lr_scheduler.step()
                     pbar.set_postfix(**{'lr': lr,
                                         'oa': ttoa / (i + 1),
-                                        'mIou': miou,
-                                        'acc': ttacc / (i + 1),
+                                        # 'iou': np.array(iou.cpu()),
+                                        'mIou': iou[:-1].mean().item(),
                                         'loss': ttloss / (i+1),
-                                        'f1': ttf1/(i+1)
+                                        'f1': f1[-1].mean().item()
+                                        # 'f1': np.array(f1.cpu()),
                                         })
-                    pbar.update(1)
 
-        # print('acc: %.3f ||  oa: %.3f || mIou: %.3f  || loss: %.3f' % (ttacc / (i+1), ttoa / (i+1), ttmiou / (i+1), ttloss / (i+1)))
+                    pbar.update(1)
+        print(f'f1:{f1} ||  iou: {iou} || oa: {ttoa / (i + 1):.3f}  || loss: {ttloss / (i + 1):.3f}')
+
 
         if (epoch_num+1) % 10 == 0:
         # if epoch_num == 0 or 1:
@@ -802,26 +749,26 @@ def trainn(num_classes, model, train_image_paths, val_image_paths, epoch_step, e
                         # loss_aux = [crit(lgt, vlabel_batch) for crit, lgt in
                         #             zip([OhemCELoss(0.7) for _ in range(4)], logits_aux)]
                         # vloss = loss_pre
-                        vmiou, vacc, voa, vmf1, vf1, vgiou = f_score(outputss, vlabel_batch)
-                        vvmiou += vmiou
-                        vvacc += vacc
+                        # vmiou, vacc, voa, vmf1, vf1, vgiou = f_score(outputss, vlabel_batch)
+                        voa, tp, fp, fn = f_score(outputss, vlabel_batch)
+                        vvtp += tp
+                        vvfp += fp
                         vvoa += voa
-                        vvmf1 += vmf1
-                        vvf1 += vf1
-                        vvgiou += vgiou
+                        vvfn += fn
                         vvloss += vloss
+                        iou = vvtp / (vvfp + vvfn + vvtp + 1e-5)
+                        f1 = ((2 * vvtp) / (2 * vvtp + vvfp + vvfn + 1e-5))
                     pbar.set_postfix(**{'lr': get_lr(optimizer),
                                         'oa': vvoa / (j+1),
-                                        'mIou': vvmiou / (j + 1),
-                                        'acc': vvacc / (j + 1),
-                                        'mf1': vvmf1/(j+1),
-                                        'f1': vvf1/(j+1),
-                                        'giou': vvgiou/(j+1)
+                                        # 'iou': iou,
+                                        'mIou': iou[:-1].mean().item(),
+                                        # 'f1': f1,
+                                        'mf1': f1[:-1].mean().item(),
                                         })
                     pbar.update(1)
-            print('valacc: %.3f ||  valoa: %.3f || valmIou: %.3f  || valloss: %.3f' % (vvacc / (j+1), vvoa / (j+1), vvmiou / (j+1), vvloss / (j+1)))
+                print(f'f1:{f1} ||  iou: {iou} || oa: {vvoa / (i + 1):.3f}  || loss: {vvloss / (i + 1):.3f}')
             if 140 >= epoch_num >= 120 or epoch_num >= 280:
-                torch.save(model.state_dict(), 'savemodel/ep%03d-loss%.3f-acc%.3f.pth' % ((epoch_num + 1), vvloss / (epoch_step_val),  vvacc / (epoch_step_val)))
+                torch.save(model.state_dict(), 'savemodel/ep%03d-loss%.3f-mIou%.3f.pth' % ((epoch_num + 1), vvloss / (epoch_step_val),  iou[:-1].mean().item()))
         lr_scheduler.step()
 
     print((time.time() - a)/60)
