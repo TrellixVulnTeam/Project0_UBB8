@@ -217,16 +217,31 @@ class HighResolutionNet(nn.Module):
         #     nn.Conv2d(256, num_classes,
         #               kernel_size=1, stride=1, padding=0, bias=True)
         # )
-        self.ocr_distri_head = SpatialOCR_Module(in_channels=256,
+        hidden_dim = 256
+        self.ocr_distri_head = nn.ModuleList()
+        self.cls_head = nn.ModuleList()
+        self.cls_head2 = nn.ModuleList()
+        self.decoder_norm = nn.ModuleList()
+        for _ in range(4):
+            self.ocr_distri_head.append(SpatialOCR_Module(in_channels=256,
                                                  key_channels=256,
                                                  out_channels=256,
                                                  scale=1,
                                                  dropout=0.05,
-                                                 )
-        self.cls_head = nn.Sequential(nn.Conv2d(
+                                                 ))
+
+            self.cls_head.append(nn.Conv2d(
             256, num_classes, kernel_size=1, stride=1, padding=0, bias=True))
-        self.cls_head2 = nn.Sequential(nn.Conv2d(
-            256, 20, kernel_size=1, stride=1, padding=0, bias=True))  ###queries
+
+            self.cls_head2.append(nn.Conv2d(
+            256, 20, kernel_size=1, stride=1, padding=0, bias=True))
+
+            self.decoder_norm.append(nn.LayerNorm(hidden_dim))
+
+        # self.cls_head = nn.Sequential(nn.Conv2d(
+        #     256, num_classes, kernel_size=1, stride=1, padding=0, bias=True))
+        # self.cls_head2 = nn.Sequential(nn.Conv2d(
+        #     256, 20, kernel_size=1, stride=1, padding=0, bias=True))  ###queries
             # ModuleHelper.BNReLU(num_features=num_classes))
         self.head = nn.Sequential(nn.Conv2d(
             1024, 256, kernel_size=1, stride=1, padding=0, bias=True),
@@ -237,13 +252,14 @@ class HighResolutionNet(nn.Module):
         ocr_mid_channels = 512  #512
         ocr_key_channels = 256   #256
 
-        hidden_dim = 256
+
         self.level_embed = nn.Embedding(3, hidden_dim)
 
         self.query_feat = nn.Embedding(20, hidden_dim) ###queries
         self.query_embed = nn.Embedding(20, hidden_dim)###queries
         self.pe_layer = maskf4.PositionEmbeddingSine(128, normalize=True)
-        self.decoder_norm = nn.LayerNorm(hidden_dim)
+
+
 
         # self.class_embed = nn.Linear(256, num_classes)  ##去掉
         # self.mask_embed = maskf4.MLP(256, 256, 6, 3)   ##去掉
@@ -287,8 +303,8 @@ class HighResolutionNet(nn.Module):
     def _upsample(self, x, h, w):
         return F.interpolate(x, size=(h, w), mode='bilinear', align_corners=True)
 
-    def forward_prediction_heads(self, output, mask_features,attn_mask_target_size ):
-        decoder_output = self.decoder_norm(output)
+    def forward_prediction_heads(self, output, mask_features,attn_mask_target_size,num ):
+        decoder_output = self.decoder_norm[num](output)
         # decoder_output = decoder_output.transpose(0, 1)
         decoder_output = decoder_output.transpose(0, 1)
         # outputs_class = self.class_embed(decoder_output)
@@ -297,9 +313,10 @@ class HighResolutionNet(nn.Module):
 
         # outputs_mask = torch.einsum("bqf,bfhw->bqhw", decoder_output, mask_features)
 
-        outputs_mask = self.ocr_distri_head(mask_features,decoder_output)
 
-        outputs_mask1 = self.cls_head2(outputs_mask)
+        outputs_mask = self.ocr_distri_head[num](mask_features,decoder_output)
+
+        outputs_mask1 = self.cls_head2[num](outputs_mask)
 
         # outputs_mask = self.cls_head(mask_features)
 
@@ -314,8 +331,8 @@ class HighResolutionNet(nn.Module):
 
         attn_mask = (attn_mask.sigmoid().flatten(2).unsqueeze(1).repeat(1, self.num_heads, 1, 1).flatten(0,
                                                                                                          1) < 0.5).bool()
-        outputs_mask = self.cls_head(outputs_mask)
-        # attn_mask = attn_mask.detach()
+        outputs_mask = self.cls_head[num](outputs_mask)
+        attn_mask = attn_mask.detach()
         outputs_mask = F.interpolate(outputs_mask, size=(512, 512), mode="bilinear", align_corners=False)
         return  outputs_mask, attn_mask
 
@@ -361,7 +378,7 @@ class HighResolutionNet(nn.Module):
         # auxout = self.aux_head(x0)
         # output = self.gather_head(x0,auxout)
         # output = output.reshape(6,4,256)
-        outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[0])
+        outputs_mask, attn_mask = self.forward_prediction_heads(output, x0, attn_mask_target_size=size_list[0],num=0)
         predictions_mask.append(outputs_mask)
 
 
@@ -390,7 +407,7 @@ class HighResolutionNet(nn.Module):
 
             # if i == 2:
 
-            outputs_mask, attn_mask = self.forward_prediction_heads(output, x0,attn_mask_target_size=size_list[(i + 1) % 3])
+            outputs_mask, attn_mask = self.forward_prediction_heads(output, x0,attn_mask_target_size=size_list[(i + 1) % 3],num=i+1)
             # predictions_class.append(outputs_class)
             predictions_mask.append(outputs_mask)
 
